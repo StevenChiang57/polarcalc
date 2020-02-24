@@ -1,7 +1,7 @@
 // STEVEN CHIANG
 
 // WARNING: WHEN YOU COMPILE MAKE SURE YOU INCLUDE -lm
-// EXAMPLE "clang polar.c -lm -o test"
+// EXAMPLE "clang polarr.c -lm -o test"
 //          ./test
 #include <stdio.h>
 #include <stdlib.h>
