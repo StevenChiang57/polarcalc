@@ -8,13 +8,15 @@
 #include <ctype.h>
 #include <math.h>
 #include <string.h>
-#define MAXOP   100    /* max size of operand/operator */
+#define MAXOP 100    /* max size of operand/operator */
 #define NUMBER '0'     /* signal that a number was found */
-#define MAXVAL  100
-
+#define MAXVAL 100
+#define MATH '1'
+#define VARIABLE '3'
+#define STACK '2'
 size_t sp = 0;   // aka unsigned long -- printf using %zu
 double val[MAXVAL];   // stack of values
-
+double variable[26];
 char buf[BUFSIZ];
 size_t bufp = 0;
 
@@ -24,11 +26,31 @@ void ungetch_(int c) {
   buf[bufp++] = c;
 }
 
+void buildstring(char *s){
+  int c, i = 0;
+  while(isalpha(s[++i] = c = getch_())){}
+  s[i] = '\0';
+}
 
 int getop(char* s) {
   int i, c;
   while ((s[0] = c = getch_()) == ' ' || c == '\t') { }  // skip whitespace
   s[1] = '\0';
+
+  if (c == '0'){
+    buildstring(s);
+    return STACK;
+  }
+
+  if (isalpha(c)){
+    buildstring(s);
+    return MATH;
+  }
+
+  if (c == '=' || c == '?'){
+    buildstring(s);
+    return VARIABLE;
+  }
 
   if (!isdigit(c) && c != '.') { return c; }  // if not a digit, return
 
@@ -94,22 +116,43 @@ void clear(void){
 }
 
 void mathfunc(char s[]){
-  double op2;
+  double op2, result = 0;
   if (strcmp(s, "sin") == 0)
-    push(sin(pop()));
+    result = sin(pop());
   else if(strcmp(s, "exp") == 0)
-    push(exp(pop()));
+    result = exp(pop());
   else if (strcmp(s, "pow") == 0){
     op2 = pop();
-    push(pow(pop(), op2));
+    result = pow(pop(), op2);
   }
+  push(result);
+  printf("%.2f\n", result);
+}
+
+void stacks(char s[]){
+  if (strcmp(s, "dup"))
+    dup();
+  else if (strcmp(s, "swap"))
+    swap();
+  else if (strcmp(s, "print"))
+    printtoptwo();
+  else if (strcmp(s, "clear"))
+    clear();
+}
+void variables(char *s){
+  if (*s == '=')
+    variable[*++s - 'A'] = pop();
+  else if (*s == '?')
+    push(variable[*++s - 'A']);
+  // 7 =a
+  // ?a 5 +
+  //       12
 }
 
 void rpn(void) {
-  int type, var;
+  int type;
   double op2;
   char s[BUFSIZ];
-  double variable[26];
   while ((type = getop(s)) != EOF) {
     switch(type) {
       case '\n':    printf("\t%.8g\n", pop());  break;
@@ -128,27 +171,14 @@ void rpn(void) {
         else
           printf("error: zero divisor\n");
         break;
-      case 't': //print top 2
-        printtoptwo();
+      case STACK:
+        stacks();
         break;
-      case 'd': // duplicate top of the topstack
-        dup();
-        break;
-      case 's': //swap top 2
-        swap();
-        break;
-      case 'c': //clear the stack and sp
-        clear();
-        break;
-      case 'n': // MATH COMMANDS sin cos pow
+      case MATH: // MATH COMMANDS sin cos pow
         mathfunc(s);
         break;
-      case '=':
-        pop();
-        if (var >= 'A' && var <= 'Z')
-          variable[var - 'A'] = pop();
-        else
-          printf("error: unknown variable\n");
+      case VARIABLE:
+        variables(s);
         break;
       default:      fprintf(stderr, "unknown command %s\n", s);  break;
     }
